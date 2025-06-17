@@ -112,10 +112,8 @@ export const ProjectProvider = ({ children }) => {
         return newProjectWithDefaults;
     };
 
-    const updateProject = (projectId, updatedData) => {
-        const updatedProjects = projectsData.map(project =>
-            project.id === projectId ? { ...project, ...updatedData } : project
-        );
+    const updateProject = (updatedProject) => {
+        const updatedProjects = projectsData.map(p => p.id === updatedProject.id ? updatedProject : p);
         setProjectsData(updatedProjects);
         localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updatedProjects));
     };
