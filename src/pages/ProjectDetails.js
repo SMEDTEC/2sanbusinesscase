@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Container, Box, Typography, Tabs, Tab, Button,
@@ -13,8 +13,8 @@ import Timeline from '../components/Timeline';
 import CommercialModel from '../components/CommercialModel';
 import RiskAssumptions from '../components/RiskAssumptions';
 
-// Mock data
-import { projects } from '../utils/mockData';
+// ProjectContext for data
+import { ProjectContext } from '../context/ProjectContext';
 
 // Tab Panel Component
 function TabPanel(props) {
@@ -41,12 +41,13 @@ const ProjectDetails = () => {
   const { id } = useParams();
   const [tabValue, setTabValue] = useState(0);
   const [project, setProject] = useState(null);
+  const { getProjectById } = useContext(ProjectContext); // Use context
 
   useEffect(() => {
-    // Find the project with the matching ID
-    const foundProject = projects.find(p => p.id === parseInt(id));
+    // Find the project with the matching ID using context
+    const foundProject = getProjectById(id);
     setProject(foundProject);
-  }, [id]);
+  }, [id, getProjectById]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
