@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 // Pages
 import Dashboard from './pages/Dashboard';
 import ProjectDetails from './pages/ProjectDetails';
+import AddProject from './pages/AddProject';
 
 // Components
 import Header from './components/Header';
@@ -45,7 +46,8 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/project/:id" element={<ProjectDetails />} />
+                        <Route path="/project/:id" element={<ProjectDetails />} />
+            <Route path="/add-project" element={<AddProject />} />
           </Routes>
         </main>
       </div>

@@ -1,194 +1,139 @@
-import React from 'react';
-import { 
-  Box, Typography, Paper, Table, 
-  TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Grid, Chip
+import React, { useState, useContext, useEffect } from 'react';
+import {
+  Box, Typography, Paper, Table,
+  TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Grid, Chip, Button, TextField, IconButton, List, ListItem, ListItemText
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import { ProjectContext } from '../context/ProjectContext';
+
+const defaultRiskAssumptions = {
+  risks: [
+    { id: 'R-001', category: 'Regulatory', description: 'FDA may request additional clinical data.', probability: 4, impact: 5, mitigation: 'Pre-submission meeting.', owner: 'Regulatory Affairs', status: 'Open' },
+  ],
+  assumptions: [
+    'Assumes a standard 510(k) submission pathway.',
+  ],
+};
 
 const RiskAssumptions = ({ project }) => {
+  const { updateProject } = useContext(ProjectContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState(defaultRiskAssumptions);
+
+  useEffect(() => {
+    const initialData = project?.riskAssumptions ? JSON.parse(JSON.stringify(project.riskAssumptions)) : defaultRiskAssumptions;
+    setEditedData(initialData);
+  }, [project, isEditing]);
+
+  const handleSave = () => {
+    updateProject({ ...project, riskAssumptions: editedData });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => setIsEditing(false);
+
+  const handleRiskChange = (index, field, value) => {
+    const newRisks = [...editedData.risks];
+    const parsedValue = (field === 'probability' || field === 'impact') ? parseInt(value, 10) || 0 : value;
+    newRisks[index] = { ...newRisks[index], [field]: parsedValue };
+    setEditedData({ ...editedData, risks: newRisks });
+  };
+
+  const handleAssumptionChange = (index, value) => {
+    const newAssumptions = [...editedData.assumptions];
+    newAssumptions[index] = value;
+    setEditedData({ ...editedData, assumptions: newAssumptions });
+  };
+
+  const addRisk = () => {
+    const newRisk = { id: `R-00${editedData.risks.length + 1}`, category: '', description: '', probability: 1, impact: 1, mitigation: '', owner: '', status: 'New' };
+    setEditedData({ ...editedData, risks: [...editedData.risks, newRisk] });
+  };
+
+  const deleteRisk = (index) => {
+    const newRisks = editedData.risks.filter((_, i) => i !== index);
+    setEditedData({ ...editedData, risks: newRisks });
+  };
+
+  const addAssumption = () => {
+    setEditedData({ ...editedData, assumptions: [...editedData.assumptions, ''] });
+  };
+
+  const deleteAssumption = (index) => {
+    const newAssumptions = editedData.assumptions.filter((_, i) => i !== index);
+    setEditedData({ ...editedData, assumptions: newAssumptions });
+  };
+
+  const getRiskScoreChip = (probability, impact) => {
+    const score = (probability * 0.1) * (impact * 0.1) * 10; // Simple weighted score
+    const normalizedScore = Math.min(1, score).toFixed(2);
+    let color = 'success';
+    if (normalizedScore > 0.6) color = 'error';
+    else if (normalizedScore > 0.3) color = 'warning';
+    return <Chip label={normalizedScore} color={color} size="small" />;
+  };
+
   return (
     <Box>
-      <Typography variant="h5" component="h2" gutterBottom>
-        RISK & ASSUMPTIONS
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" component="h2">RISK & ASSUMPTIONS</Typography>
+        <Box>
+          {isEditing ? (
+            <>
+              <Button variant="outlined" startIcon={<CancelIcon />} onClick={handleCancel} sx={{ mr: 1 }}>Cancel</Button>
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save</Button>
+            </>
+          ) : (
+            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setIsEditing(true)}>Edit</Button>
+          )}
+        </Box>
+      </Box>
 
-      {/* Risk Assessment Table */}
-      <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 3 }}>
-        Risk Assessment Matrix
-      </Typography>
+      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Risk Assessment Matrix</Typography>
       <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#1976d2' }}>
-              <TableCell sx={{ color: 'white' }}>Risk ID</TableCell>
-              <TableCell sx={{ color: 'white' }}>Risk Category</TableCell>
-              <TableCell sx={{ color: 'white' }}>Description</TableCell>
-              <TableCell sx={{ color: 'white' }}>Probability (1-5)</TableCell>
-              <TableCell sx={{ color: 'white' }}>Impact (1-5)</TableCell>
-              <TableCell sx={{ color: 'white' }}>Risk Score</TableCell>
-              <TableCell sx={{ color: 'white' }}>Mitigation Strategy</TableCell>
-              <TableCell sx={{ color: 'white' }}>Owner</TableCell>
-              <TableCell sx={{ color: 'white' }}>Status</TableCell>
-            </TableRow>
-          </TableHead>
+        <Table size="small">
+          <TableHead><TableRow sx={{ backgroundColor: '#1976d2' }}>{['ID', 'Category', 'Description', 'Prob (1-5)', 'Impact (1-5)', 'Score', 'Mitigation', 'Owner', 'Status', ''].map(h => <TableCell key={h} sx={{ color: 'white' }}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>
-            <TableRow>
-              <TableCell>R-001</TableCell>
-              <TableCell>Regulatory</TableCell>
-              <TableCell>FDA may request additional clinical data beyond what is planned</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell>5</TableCell>
-              <TableCell>
-                <Chip label="0.8" color="error" size="small" />
-              </TableCell>
-              <TableCell>Pre-submission meeting to align on requirements; contingency budget for additional studies</TableCell>
-              <TableCell>Regulatory Affairs</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-002</TableCell>
-              <TableCell>Clinical</TableCell>
-              <TableCell>Slow patient enrollment in clinical studies</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell>
-                <Chip label="0.6" color="warning" size="small" />
-              </TableCell>
-              <TableCell>Multi-site recruitment strategy; enrollment incentives; backup sites identified</TableCell>
-              <TableCell>Clinical Operations</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-003</TableCell>
-              <TableCell>Technical</TableCell>
-              <TableCell>Usability testing reveals design issues requiring modifications</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell>
-                <Chip label="0.6" color="warning" size="small" />
-              </TableCell>
-              <TableCell>Early formative usability testing; rapid design iteration capability</TableCell>
-              <TableCell>R&D</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-004</TableCell>
-              <TableCell>Supply Chain</TableCell>
-              <TableCell>Component shortages affecting manufacturing scale-up</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell>5</TableCell>
-              <TableCell>
-                <Chip label="0.5" color="warning" size="small" />
-              </TableCell>
-              <TableCell>Secondary supplier qualification; strategic inventory build</TableCell>
-              <TableCell>Operations</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-005</TableCell>
-              <TableCell>Commercial</TableCell>
-              <TableCell>Competitive product launch before market entry</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell>
-                <Chip label="0.45" color="warning" size="small" />
-              </TableCell>
-              <TableCell>Competitive intelligence monitoring; differentiation strategy</TableCell>
-              <TableCell>Marketing</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-006</TableCell>
-              <TableCell>Financial</TableCell>
-              <TableCell>Project costs exceed budget by >15%</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell>
-                <Chip label="0.4" color="warning" size="small" />
-              </TableCell>
-              <TableCell>25% contingency buffer; monthly financial reviews; stage-gate approach</TableCell>
-              <TableCell>Finance</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>R-007</TableCell>
-              <TableCell>Regulatory</TableCell>
-              <TableCell>Changes in regulatory guidelines during development</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell>
-                <Chip label="0.3" color="success" size="small" />
-              </TableCell>
-              <TableCell>Regulatory intelligence monitoring; flexible protocol design</TableCell>
-              <TableCell>Regulatory Affairs</TableCell>
-              <TableCell>Open</TableCell>
-            </TableRow>
+            {editedData.risks.map((risk, i) => (
+              <TableRow key={i}>
+                <TableCell>{isEditing ? <TextField size="small" value={risk.id} onChange={(e) => handleRiskChange(i, 'id', e.target.value)} /> : risk.id}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" value={risk.category} onChange={(e) => handleRiskChange(i, 'category', e.target.value)} /> : risk.category}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" fullWidth value={risk.description} onChange={(e) => handleRiskChange(i, 'description', e.target.value)} /> : risk.description}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.probability} onChange={(e) => handleRiskChange(i, 'probability', e.target.value)} /> : risk.probability}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.impact} onChange={(e) => handleRiskChange(i, 'impact', e.target.value)} /> : risk.impact}</TableCell>
+                <TableCell>{getRiskScoreChip(risk.probability, risk.impact)}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" fullWidth value={risk.mitigation} onChange={(e) => handleRiskChange(i, 'mitigation', e.target.value)} /> : risk.mitigation}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" value={risk.owner} onChange={(e) => handleRiskChange(i, 'owner', e.target.value)} /> : risk.owner}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" value={risk.status} onChange={(e) => handleRiskChange(i, 'status', e.target.value)} /> : risk.status}</TableCell>
+                <TableCell>{isEditing && <IconButton size="small" onClick={() => deleteRisk(i)}><DeleteIcon /></IconButton>}</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
+        {isEditing && <Button startIcon={<AddIcon />} onClick={addRisk} sx={{ m: 1 }}>Add Risk</Button>}
       </TableContainer>
 
-      {/* Key Assumptions */}
-      <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 4 }}>
-        Key Assumptions
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Regulatory Assumptions
-            </Typography>
-            <ul>
-              <li>510(k) pathway is appropriate for this dual-analyte test</li>
-              <li>Predicate devices are suitable for comparison</li>
-              <li>FDA review cycle will be completed within standard timeframes</li>
-              <li>No additional clinical data beyond planned studies will be required</li>
-              <li>OTC classification can be obtained with planned human factors studies</li>
-            </ul>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Clinical Assumptions
-            </Typography>
-            <ul>
-              <li>Clinical study enrollment targets can be met within timeline</li>
-              <li>Sensitivity and specificity will meet or exceed predicate devices</li>
-              <li>Study sites will be available and operational during planned timeframes</li>
-              <li>Sample collection will be representative of intended use population</li>
-              <li>No significant adverse events will occur during clinical testing</li>
-            </ul>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Commercial Assumptions
-            </Typography>
-            <ul>
-              <li>Market demand for dual COVID/Flu testing will continue</li>
-              <li>Pricing strategy will be competitive and acceptable to payers</li>
-              <li>Distribution channels will be secured prior to launch</li>
-              <li>Manufacturing capacity will meet projected demand</li>
-              <li>No significant new competitors will enter market before launch</li>
-            </ul>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Technical Assumptions
-            </Typography>
-            <ul>
-              <li>Current design will pass all verification and validation testing</li>
-              <li>Manufacturing transfer will be completed without significant issues</li>
-              <li>Shelf-life stability will meet 18-month target</li>
-              <li>Quality system will meet FDA requirements</li>
-              <li>No significant design changes will be needed after usability testing</li>
-            </ul>
-          </Paper>
-        </Grid>
-      </Grid>
+      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Key Assumptions</Typography>
+      <Paper sx={{ p: 2 }}>
+        <List dense>
+          {editedData.assumptions.map((assumption, i) => (
+            <ListItem key={i} disableGutters secondaryAction={isEditing && <IconButton edge="end" onClick={() => deleteAssumption(i)}><DeleteIcon /></IconButton>}>
+              {isEditing ? (
+                <TextField fullWidth multiline value={assumption} onChange={(e) => handleAssumptionChange(i, e.target.value)} />
+              ) : (
+                <ListItemText primary={assumption} />
+              )}
+            </ListItem>
+          ))}
+        </List>
+        {isEditing && <Button startIcon={<AddIcon />} onClick={addAssumption} sx={{ mt: 1 }}>Add Assumption</Button>}
+      </Paper>
+
 
       {/* Risk Heat Map */}
       <Typography variant="h6" component="h3" gutterBottom sx={{ mt: 4 }}>

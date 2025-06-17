@@ -1,16 +1,109 @@
-import React from 'react';
-import { 
-  Box, Typography, Paper, Table, 
-  TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Divider, Grid
+import React, { useState, useContext, useEffect } from 'react';
+import {
+  Box, Typography, Paper, Table,
+  TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Button, TextField, IconButton
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { ProjectContext } from '../context/ProjectContext';
 
 const CostPayment = ({ project }) => {
+  const { updateProject } = useContext(ProjectContext);
+  const [editMode, setEditMode] = useState(false);
+  const [editedData, setEditedData] = useState({ costs: [], contingencyPercentage: 0 });
+
+  useEffect(() => {
+    if (project) {
+      // Deep copy to avoid direct mutation of context state
+      setEditedData({
+        costs: project.costs ? JSON.parse(JSON.stringify(project.costs)) : [],
+        contingencyPercentage: project.contingencyPercentage || 0,
+      });
+    }
+  }, [project, editMode]); // Rerun if project changes or when exiting edit mode
+
+  const handleEdit = () => setEditMode(true);
+
+  const handleCancel = () => {
+    setEditMode(false);
+    // State will be reset by useEffect
+  };
+
+  const handleSave = () => {
+    const updatedProject = {
+      ...project,
+      costs: editedData.costs,
+      contingencyPercentage: editedData.contingencyPercentage,
+    };
+    updateProject(updatedProject);
+    setEditMode(false);
+  };
+
+  const handleCostChange = (index, field, value) => {
+    const newCosts = [...editedData.costs];
+    const costItem = { ...newCosts[index] };
+    costItem[field] = (field === 'amount' || field === 'year' || field === 'phase') ? (parseFloat(value) || 0) : value;
+    newCosts[index] = costItem;
+    setEditedData(prev => ({ ...prev, costs: newCosts }));
+  };
+  
+  const handleContingencyChange = (event) => {
+    setEditedData(prev => ({ ...prev, contingencyPercentage: parseFloat(event.target.value) || 0 }));
+  };
+
+  const handleAddCost = () => {
+    const newCostItem = {
+      category: '',
+      description: '',
+      amount: 0,
+      year: new Date().getFullYear(),
+      phase: 0,
+      status: 'Not Started',
+    };
+    setEditedData(prev => ({ ...prev, costs: [...prev.costs, newCostItem] }));
+  };
+
+  const handleRemoveCost = (index) => {
+    const newCosts = editedData.costs.filter((_, i) => i !== index);
+    setEditedData(prev => ({ ...prev, costs: newCosts }));
+  };
+
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+
+  const costs = editedData.costs || [];
+  const contingencyPercentage = editedData.contingencyPercentage || 0;
+  const subTotal = costs.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const contingencyAmount = subTotal * (contingencyPercentage / 100);
+  const grandTotal = subTotal + contingencyAmount;
+
   return (
     <Box>
-      <Typography variant="h5" component="h2" gutterBottom>
-        COST & PAYMENT SCHEDULE
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" component="h2">
+          COST & PAYMENT SCHEDULE
+        </Typography>
+        <Box>
+          {editMode ? (
+            <>
+              <Button variant="outlined" startIcon={<CancelIcon />} onClick={handleCancel} sx={{ mr: 1 }}>
+                Cancel
+              </Button>
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
+                Save
+              </Button>
+            </>
+          ) : (
+            <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>
+              Edit
+            </Button>
+          )}
+        </Box>
+      </Box>
 
       <TableContainer component={Paper} sx={{ mb: 4 }}>
         <Table>
@@ -18,112 +111,88 @@ const CostPayment = ({ project }) => {
             <TableRow sx={{ backgroundColor: '#1976d2' }}>
               <TableCell sx={{ color: 'white' }}>Category</TableCell>
               <TableCell sx={{ color: 'white' }}>Description</TableCell>
-              <TableCell sx={{ color: 'white' }}>Amount</TableCell>
-              <TableCell sx={{ color: 'white' }}>Year</TableCell>
-              <TableCell sx={{ color: 'white' }}>Phase</TableCell>
+              <TableCell sx={{ color: 'white', textAlign: 'right' }}>Amount</TableCell>
+              <TableCell sx={{ color: 'white', textAlign: 'center' }}>Year</TableCell>
+              <TableCell sx={{ color: 'white', textAlign: 'center' }}>Phase</TableCell>
               <TableCell sx={{ color: 'white' }}>Status</TableCell>
+              {editMode && <TableCell sx={{ color: 'white' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            <TableRow>
-              <TableCell>Regulatory Strategy</TableCell>
-              <TableCell>Regulatory Strategy & FDA Pre-Sub</TableCell>
-              <TableCell>$60,000</TableCell>
-              <TableCell>2025</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
+            {costs.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  {editMode ? <TextField size="small" value={item.category} onChange={(e) => handleCostChange(index, 'category', e.target.value)} /> : item.category}
+                </TableCell>
+                <TableCell>
+                  {editMode ? <TextField size="small" value={item.description} onChange={(e) => handleCostChange(index, 'description', e.target.value)} /> : item.description}
+                </TableCell>
+                <TableCell sx={{ textAlign: 'right' }}>
+                  {editMode ? <TextField size="small" type="number" value={item.amount} onChange={(e) => handleCostChange(index, 'amount', e.target.value)} sx={{ '& input': { textAlign: 'right' } }} /> : formatCurrency(item.amount)}
+                </TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>
+                  {editMode ? <TextField size="small" type="number" value={item.year} onChange={(e) => handleCostChange(index, 'year', e.target.value)} sx={{ '& input': { textAlign: 'center' } }} /> : item.year}
+                </TableCell>
+                <TableCell sx={{ textAlign: 'center' }}>
+                  {editMode ? <TextField size="small" type="number" value={item.phase} onChange={(e) => handleCostChange(index, 'phase', e.target.value)} sx={{ '& input': { textAlign: 'center' } }} /> : item.phase}
+                </TableCell>
+                <TableCell>
+                  {editMode ? <TextField size="small" value={item.status} onChange={(e) => handleCostChange(index, 'status', e.target.value)} /> : item.status}
+                </TableCell>
+                {editMode && (
+                  <TableCell>
+                    <IconButton onClick={() => handleRemoveCost(index)} color="error">
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+            {costs.length === 0 && !editMode && (
+              <TableRow>
+                <TableCell colSpan={6} sx={{ textAlign: 'center', fontStyle: 'italic' }}>
+                  No cost items have been added.
+                </TableCell>
+              </TableRow>
+            )}
+            {editMode && (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  <Button startIcon={<AddCircleOutlineIcon />} onClick={handleAddCost}>
+                    Add Cost Item
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )}
+            
+            {/* Summary Rows */}
+            <TableRow sx={{ '& td': { border: 0 }, '& th': { border: 0 } }}>
+              <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold', pt: 4 }}>SUBTOTAL</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold', pt: 4 }}>{formatCurrency(subTotal)}</TableCell>
+              <TableCell colSpan={editMode ? 4 : 3}></TableCell>
             </TableRow>
-            <TableRow>
-              <TableCell>Clinical Start-Up</TableCell>
-              <TableCell>Study Start-Up & Site Initiation</TableCell>
-              <TableCell>$200,000</TableCell>
-              <TableCell>2025</TableCell>
-              <TableCell>6</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Clinical Execution</TableCell>
-              <TableCell>Clinical Study Execution</TableCell>
-              <TableCell>$700,000</TableCell>
-              <TableCell>2025</TableCell>
-              <TableCell>7</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Data Management</TableCell>
-              <TableCell>Data Analysis & Final Report</TableCell>
-              <TableCell>$240,000</TableCell>
-              <TableCell>2026</TableCell>
-              <TableCell>8</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Regulatory Submission</TableCell>
-              <TableCell>510(k) eSTAR Preparation & Submission</TableCell>
-              <TableCell>$150,000</TableCell>
-              <TableCell>2026</TableCell>
-              <TableCell>9</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Regulatory Submission</TableCell>
-              <TableCell>FDA Review & AI Responses</TableCell>
-              <TableCell>$250,000</TableCell>
-              <TableCell>2026</TableCell>
-              <TableCell>10</TableCell>
-              <TableCell sx={{ backgroundColor: '#e3f2fd' }}>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell colSpan={6} sx={{ fontStyle: 'italic', color: '#757575' }}>
-                -- INSERT NEW COST ITEMS ABOVE THIS LINE --
+            <TableRow sx={{ '& td': { border: 0 } }}>
+              <TableCell colSpan={2} align="right">
+                {editMode ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <Typography sx={{ mr: 1 }}>Contingency (%)</Typography>
+                    <TextField size="small" type="number" value={contingencyPercentage} onChange={handleContingencyChange} sx={{ width: '80px' }} />
+                  </Box>
+                ) : `Contingency (${contingencyPercentage}%)`}
               </TableCell>
+              <TableCell align="right">{formatCurrency(contingencyAmount)}</TableCell>
+              <TableCell colSpan={editMode ? 4 : 3}></TableCell>
             </TableRow>
-            <TableRow>
-              <TableCell colSpan={2} sx={{ fontWeight: 'bold' }}>TOTAL</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', borderBottom: '2px solid #000' }}>$1,600,000</TableCell>
-              <TableCell colSpan={3}></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Buffer</TableCell>
-              <TableCell>25% Contingency</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', borderBottom: '2px solid #000' }}>$2,000,000</TableCell>
-              <TableCell colSpan={3}></TableCell>
+            <TableRow sx={{ '& td': { border: 0 } }}>
+              <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold' }}>GRAND TOTAL</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold', borderTop: '2px solid #000', borderBottom: '4px double #000' }}>
+                {formatCurrency(grandTotal)}
+              </TableCell>
+              <TableCell colSpan={editMode ? 4 : 3}></TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
-
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          How is the contingency spread out?
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body1">
-              The 25% contingency buffer is allocated across different project phases based on risk assessment:
-            </Typography>
-            <ul>
-              <li>Regulatory Strategy & FDA Pre-Sub: 15% of buffer ($60,000)</li>
-              <li>Clinical Start-Up & Site Initiation: 20% of buffer ($80,000)</li>
-              <li>Clinical Study Execution: 35% of buffer ($140,000)</li>
-              <li>Data Analysis & Final Report: 10% of buffer ($40,000)</li>
-              <li>Regulatory Submission & FDA Review: 20% of buffer ($80,000)</li>
-            </ul>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body1">
-              Contingency allocation is based on:
-            </Typography>
-            <ul>
-              <li>Historical data from similar projects</li>
-              <li>Risk assessment for each phase</li>
-              <li>Complexity of regulatory requirements</li>
-              <li>Potential for additional site needs</li>
-              <li>Potential for extended FDA review cycles</li>
-            </ul>
-          </Grid>
-        </Grid>
-      </Paper>
     </Box>
   );
 };

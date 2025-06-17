@@ -5,6 +5,7 @@ import {
   Card, CardContent, CardActions, Button,
   Chip, List, ListItem, ListItemText // Removed Table related imports, added List for metrics
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
@@ -145,10 +146,19 @@ const Dashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box className="dashboard-header" sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom className="dashboard-title">
+      <Box className="dashboard-header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" className="dashboard-title">
           2SAN BUSINESS CASE ASSESSMENT DASHBOARD
         </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          component={Link}
+          to="/add-project"
+          startIcon={<AddIcon />}
+        >
+          Create New Project
+        </Button>
       </Box>
 
       {/* Key Metrics Section */}

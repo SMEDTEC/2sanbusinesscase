@@ -1,240 +1,127 @@
-import React from 'react';
-import { 
-  Box, Typography, Paper, Table, 
-  TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Grid
+import React, { useState, useContext, useEffect } from 'react';
+import {
+  Box, Typography, Paper, Table,
+  TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Button, TextField, IconButton, Checkbox, FormControlLabel, Grid
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { ProjectContext } from '../context/ProjectContext';
 
 const Timeline = ({ project }) => {
+  const { updateProject } = useContext(ProjectContext);
+  const [editMode, setEditMode] = useState(false);
+  const [editedTimeline, setEditedTimeline] = useState([]);
+
+  useEffect(() => {
+    if (project?.timeline) {
+      setEditedTimeline(JSON.parse(JSON.stringify(project.timeline)));
+    } else {
+      setEditedTimeline([]);
+    }
+  }, [project, editMode]);
+
+  const handleEdit = () => setEditMode(true);
+  const handleCancel = () => setEditMode(false);
+
+  const handleSave = () => {
+    const updatedProject = { ...project, timeline: editedTimeline };
+    updateProject(updatedProject);
+    setEditMode(false);
+  };
+
+  const handleTimelineChange = (index, field, value) => {
+    const newTimeline = [...editedTimeline];
+    const timelineItem = { ...newTimeline[index] };
+    timelineItem[field] = value;
+    newTimeline[index] = timelineItem;
+    setEditedTimeline(newTimeline);
+  };
+
+  const handleAddItem = () => {
+    const newItem = {
+      phase: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      duration: 0,
+      owner: '',
+      status: 'Not Started',
+      isPhaseHeader: false,
+    };
+    setEditedTimeline([...editedTimeline, newItem]);
+  };
+
+  const handleRemoveItem = (index) => {
+    const newTimeline = editedTimeline.filter((_, i) => i !== index);
+    setEditedTimeline(newTimeline);
+  };
+
   return (
     <Box>
-      <Typography variant="h5" component="h2" gutterBottom>
-        PROJECT TIMELINE
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5" component="h2">PROJECT TIMELINE</Typography>
+        <Box>
+          {editMode ? (
+            <>
+              <Button variant="outlined" startIcon={<CancelIcon />} onClick={handleCancel} sx={{ mr: 1 }}>Cancel</Button>
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save</Button>
+            </>
+          ) : (
+            <Button variant="contained" startIcon={<EditIcon />} onClick={handleEdit}>Edit</Button>
+          )}
+        </Box>
+      </Box>
 
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
+      <TableContainer component={Paper}>
+        <Table size="small">
           <TableHead>
             <TableRow sx={{ backgroundColor: '#1976d2' }}>
               <TableCell sx={{ color: 'white' }}>Phase</TableCell>
               <TableCell sx={{ color: 'white' }}>Description</TableCell>
-              <TableCell sx={{ color: 'white' }}>Start Date</TableCell>
-              <TableCell sx={{ color: 'white' }}>End Date</TableCell>
+              <TableCell sx={{ color: 'white' }}>Start</TableCell>
+              <TableCell sx={{ color: 'white' }}>End</TableCell>
               <TableCell sx={{ color: 'white' }}>Duration</TableCell>
               <TableCell sx={{ color: 'white' }}>Owner</TableCell>
               <TableCell sx={{ color: 'white' }}>Status</TableCell>
+              {editMode && <TableCell sx={{ color: 'white' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* Phase 1 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 1</TableCell>
-              <TableCell>Initial Planning & Contracting</TableCell>
-              <TableCell>14/06/2025</TableCell>
-              <TableCell>05/08/2025</TableCell>
-              <TableCell>52</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1a</TableCell>
-              <TableCell>Develop business case and approval by board</TableCell>
-              <TableCell>14/05/2025</TableCell>
-              <TableCell>30/05/2025</TableCell>
-              <TableCell>16</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1b</TableCell>
-              <TableCell>Define project scope and key deliverables</TableCell>
-              <TableCell>01/06/2025</TableCell>
-              <TableCell>05/06/2025</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1c</TableCell>
-              <TableCell>Establish internal Teams and External team and roles</TableCell>
-              <TableCell>06/06/2025</TableCell>
-              <TableCell>08/06/2025</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1d</TableCell>
-              <TableCell>Ensure Manufacturer onboard with providing FULL access to documentation</TableCell>
-              <TableCell>09/06/2025</TableCell>
-              <TableCell>12/06/2025</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1e</TableCell>
-              <TableCell>Identify target predicate device and existing labeling claim strategy</TableCell>
-              <TableCell>13/06/2025</TableCell>
-              <TableCell>17/06/2025</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1f</TableCell>
-              <TableCell>Engage legal team for NDA and contract review</TableCell>
-              <TableCell>13/06/2025</TableCell>
-              <TableCell>17/06/2025</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1g</TableCell>
-              <TableCell>Collect quotations from CROs and shortlist vendors</TableCell>
-              <TableCell>18/06/2025</TableCell>
-              <TableCell>22/06/2025</TableCell>
-              <TableCell>4</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>1h</TableCell>
-              <TableCell>Finalize and sign contracts with CRO</TableCell>
-              <TableCell>23/06/2025</TableCell>
-              <TableCell>05/08/2025</TableCell>
-              <TableCell>43</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-
-            {/* Phase 2 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 2</TableCell>
-              <TableCell>Technical File Transfer & LOA</TableCell>
-              <TableCell>06/08/2025</TableCell>
-              <TableCell>22/08/2025</TableCell>
-              <TableCell>16</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>2a</TableCell>
-              <TableCell>Request device dossier from manufacturer (design validation, QMS)</TableCell>
-              <TableCell>06/08/2025</TableCell>
-              <TableCell>08/08/2025</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>2b</TableCell>
-              <TableCell>Verify completeness of existing technical/bench data</TableCell>
-              <TableCell>13/08/2025</TableCell>
-              <TableCell>20/08/2025</TableCell>
-              <TableCell>7</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>2c</TableCell>
-              <TableCell>Request Letter of Authorization (LOA) for referencing manufacturer data</TableCell>
-              <TableCell>13/08/2025</TableCell>
-              <TableCell>15/08/2025</TableCell>
-              <TableCell>2</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>2d</TableCell>
-              <TableCell>Begin building device description & FDA draft FDA format</TableCell>
-              <TableCell>16/08/2025</TableCell>
-              <TableCell>22/08/2025</TableCell>
-              <TableCell>6</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-
-            {/* Phase 3 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 3</TableCell>
-              <TableCell>CRO Engagement & Regulatory Strategy</TableCell>
-              <TableCell>23/08/2025</TableCell>
-              <TableCell>20/09/2025</TableCell>
-              <TableCell>28</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>3a</TableCell>
-              <TableCell>Internal CRO kickoff meeting & data handoff</TableCell>
-              <TableCell>23/08/2025</TableCell>
-              <TableCell>26/08/2025</TableCell>
-              <TableCell>3</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>3b</TableCell>
-              <TableCell>CRO reviews existing data & prepares gaps for 510(k) or EUA approach</TableCell>
-              <TableCell>27/08/2025</TableCell>
-              <TableCell>05/09/2025</TableCell>
-              <TableCell>9</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>3c</TableCell>
-              <TableCell>Define regulatory path and complete FDA language, labeling</TableCell>
-              <TableCell>06/09/2025</TableCell>
-              <TableCell>13/09/2025</TableCell>
-              <TableCell>7</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>3d</TableCell>
-              <TableCell>FDA usability study if needed for OTC</TableCell>
-              <TableCell>14/09/2025</TableCell>
-              <TableCell>20/09/2025</TableCell>
-              <TableCell>6</TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-
-            {/* Phase 4 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 4</TableCell>
-              <TableCell>Pre-Sub Prep & FDA Meeting</TableCell>
-              <TableCell>21/09/2025</TableCell>
-              <TableCell>05/11/2025</TableCell>
-              <TableCell>45</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
-
-            {/* Phase 5 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 5</TableCell>
-              <TableCell>Final Protocol Design & IRB Submission</TableCell>
-              <TableCell>06/11/2025</TableCell>
-              <TableCell>25/11/2025</TableCell>
-              <TableCell>19</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
-
-            {/* Phase 6 */}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Phase 6</TableCell>
-              <TableCell>Study Startup & Logistics</TableCell>
-              <TableCell>26/11/2025</TableCell>
-              <TableCell>03/01/2026</TableCell>
-              <TableCell>38</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>Not Started</TableCell>
-            </TableRow>
+            {editedTimeline.map((item, index) => {
+              const isPhaseHeader = item.isPhaseHeader || false;
+              const style = isPhaseHeader && !editMode ? { backgroundColor: '#e3f2fd', '& > *': { fontWeight: 'bold' } } : {};
+              return (
+                <TableRow key={index} sx={style}>
+                  <TableCell>{editMode ? <TextField size="small" value={item.phase} onChange={(e) => handleTimelineChange(index, 'phase', e.target.value)} /> : item.phase}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" fullWidth value={item.description} onChange={(e) => handleTimelineChange(index, 'description', e.target.value)} /> : item.description}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" type="date" InputLabelProps={{ shrink: true }} value={item.startDate} onChange={(e) => handleTimelineChange(index, 'startDate', e.target.value)} /> : item.startDate}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" type="date" InputLabelProps={{ shrink: true }} value={item.endDate} onChange={(e) => handleTimelineChange(index, 'endDate', e.target.value)} /> : item.endDate}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" type="number" value={item.duration} onChange={(e) => handleTimelineChange(index, 'duration', parseInt(e.target.value, 10) || 0)} /> : item.duration}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" value={item.owner} onChange={(e) => handleTimelineChange(index, 'owner', e.target.value)} /> : item.owner}</TableCell>
+                  <TableCell>{editMode ? <TextField size="small" value={item.status} onChange={(e) => handleTimelineChange(index, 'status', e.target.value)} /> : item.status}</TableCell>
+                  {editMode && (
+                    <TableCell>
+                      <FormControlLabel control={<Checkbox checked={isPhaseHeader} onChange={(e) => handleTimelineChange(index, 'isPhaseHeader', e.target.checked)} />} label="Phase" />
+                      <IconButton onClick={() => handleRemoveItem(index)} color="error"><DeleteIcon /></IconButton>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+            {editedTimeline.length === 0 && !editMode && (
+              <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', fontStyle: 'italic' }}>No timeline events added.</TableCell></TableRow>
+            )}
+            {editMode && (
+              <TableRow>
+                <TableCell colSpan={8} align="center">
+                  <Button startIcon={<AddCircleOutlineIcon />} onClick={handleAddItem}>Add Timeline Item</Button>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
@@ -257,55 +144,23 @@ const Timeline = ({ project }) => {
               </Box>
             </Box>
             
-            {/* Phase 1 */}
-            <Box sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
-              <Box sx={{ width: '200px' }}>Phase 1: Planning</Box>
-              <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', left: '0px', width: '100px', height: '20px', backgroundColor: '#1976d2', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-                  52 days
+            {editedTimeline.map((item, index) => {
+              const isPhaseHeader = item.isPhaseHeader || false;
+              const style = isPhaseHeader 
+                ? { backgroundColor: '#e3f2fd', '& > *': { fontWeight: 'bold' } } 
+                : {};
+
+              return (
+                <Box key={index} sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
+                  <Box sx={{ width: '200px' }}>{item.phase}</Box>
+                  <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
+                    <Box sx={{ position: 'absolute', left: `${item.startDate}0px`, width: `${item.duration * 10}px`, height: '20px', backgroundColor: '#1976d2', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
+                      {item.duration} days
+                    </Box>
+                  </Box>
                 </Box>
-              </Box>
-            </Box>
-            
-            {/* Phase 2 */}
-            <Box sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
-              <Box sx={{ width: '200px' }}>Phase 2: Tech Transfer</Box>
-              <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', left: '100px', width: '80px', height: '20px', backgroundColor: '#2196f3', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-                  16 days
-                </Box>
-              </Box>
-            </Box>
-            
-            {/* Phase 3 */}
-            <Box sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
-              <Box sx={{ width: '200px' }}>Phase 3: Regulatory</Box>
-              <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', left: '180px', width: '140px', height: '20px', backgroundColor: '#03a9f4', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-                  28 days
-                </Box>
-              </Box>
-            </Box>
-            
-            {/* Phase 4 */}
-            <Box sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
-              <Box sx={{ width: '200px' }}>Phase 4: FDA Meeting</Box>
-              <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', left: '320px', width: '225px', height: '20px', backgroundColor: '#00bcd4', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-                  45 days
-                </Box>
-              </Box>
-            </Box>
-            
-            {/* Phase 5 */}
-            <Box sx={{ display: 'flex', mb: 1, alignItems: 'center' }}>
-              <Box sx={{ width: '200px' }}>Phase 5: Protocol Design</Box>
-              <Box sx={{ flex: 1, display: 'flex', height: '30px', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', left: '545px', width: '95px', height: '20px', backgroundColor: '#009688', borderRadius: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-                  19 days
-                </Box>
-              </Box>
-            </Box>
+              );
+            })}
           </Box>
         </Box>
         <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
@@ -323,13 +178,12 @@ const Timeline = ({ project }) => {
               The critical path for this project includes:
             </Typography>
             <ul>
-              <li>Initial Planning & Contracting (Phase 1): 52 days</li>
-              <li>Technical File Transfer & LOA (Phase 2): 16 days</li>
-              <li>CRO Engagement & Regulatory Strategy (Phase 3): 28 days</li>
-              <li>Pre-Sub Prep & FDA Meeting (Phase 4): 45 days</li>
-              <li>Final Protocol Design & IRB Submission (Phase 5): 19 days</li>
+              {editedTimeline.filter(item => item.isCriticalPath).map((item, index) => (
+                <li key={index}>{item.phase}: {item.duration} days</li>
+              ))}
             </ul>
             <Typography variant="body1" sx={{ mt: 2 }}>
+              Total critical path duration: {editedTimeline.filter(item => item.isCriticalPath).reduce((acc, item) => acc + item.duration, 0)} days
               Total critical path duration: 160 days
             </Typography>
           </Paper>
