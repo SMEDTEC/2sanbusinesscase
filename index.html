@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2SAN Business Case Template</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="logo">2SAN</div>
+      <h1>Business Case Template</h1>
+      <button class="btn btn-primary">Dashboard</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="dashboard-metrics">
+      <h2>Dashboard</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h3>Total Projects</h3>
+          <p class="metric-value">3</p>
+        </div>
+        <div class="metric-card">
+          <h3>In Progress</h3>
+          <p class="metric-value">1</p>
+        </div>
+        <div class="metric-card">
+          <h3>Completed</h3>
+          <p class="metric-value">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>Not Started</h3>
+          <p class="metric-value">2</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="project-phases">
+      <h2>Project Phases</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Description</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Duration (days)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Phase 1</td>
+              <td>Initial Planning & Contracting</td>
+              <td>14/06/2025</td>
+              <td>05/08/2025</td>
+              <td>52</td>
+              <td><span class="status not-started">Not Started</span></td>
+            </tr>
+            <tr>
+              <td>Phase 2</td>
+              <td>Technical File Transfer & LOA</td>
+              <td>06/08/2025</td>
+              <td>22/08/2025</td>
+              <td>16</td>
+              <td><span class="status not-started">Not Started</span></td>
+            </tr>
+            <tr>
+              <td>Phase 3</td>
+              <td>CRO Engagement & Regulatory Strategy</td>
+              <td>23/08/2025</td>
+              <td>20/09/2025</td>
+              <td>28</td>
+              <td><span class="status not-started">Not Started</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="financial-analysis">
+      <h2>Financial Analysis</h2>
+      <div class="chart-container">
+        <canvas id="financialChart"></canvas>
+      </div>
+    </section>
+
+    <section class="projects-list">
+      <h2>Projects</h2>
+      <div class="projects-grid">
+        <!-- Project Card 1 -->
+        <div class="project-card">
+          <div class="project-header">
+            <h3>COVID/Flu OTC Pen Test 510(k) Submission</h3>
+            <span class="status not-started">Not Started</span>
+          </div>
+          <div class="project-details">
+            <p><strong>Owner:</strong> Sherif Elkadem</p>
+            <p><strong>Launch Date:</strong> Oct 15, 2025</p>
+            <p><strong>Total Cost:</strong> $2,000,000</p>
+            <p><strong>Year 1 Revenue:</strong> $3,500,000</p>
+          </div>
+          <div class="project-footer">
+            <button class="btn btn-secondary" onclick="openProjectDetails(1)">View Details</button>
+          </div>
+        </div>
+
+        <!-- Project Card 2 -->
+        <div class="project-card">
+          <div class="project-header">
+            <h3>Rapid Strep A Home Test</h3>
+            <span class="status in-progress">In Progress</span>
+          </div>
+          <div class="project-details">
+            <p><strong>Owner:</strong> Maria Johnson</p>
+            <p><strong>Launch Date:</strong> Mar 30, 2026</p>
+            <p><strong>Total Cost:</strong> $1,500,000</p>
+            <p><strong>Year 1 Revenue:</strong> $2,800,000</p>
+          </div>
+          <div class="project-footer">
+            <button class="btn btn-secondary" onclick="openProjectDetails(2)">View Details</button>
+          </div>
+        </div>
+
+        <!-- Project Card 3 -->
+        <div class="project-card">
+          <div class="project-header">
+            <h3>Continuous Glucose Monitor</h3>
+            <span class="status planning">Planning</span>
+          </div>
+          <div class="project-details">
+            <p><strong>Owner:</strong> David Chen</p>
+            <p><strong>Launch Date:</strong> Sep 15, 2026</p>
+            <p><strong>Total Cost:</strong> $3,500,000</p>
+            <p><strong>Year 1 Revenue:</strong> $5,200,000</p>
+          </div>
+          <div class="project-footer">
+            <button class="btn btn-secondary" onclick="openProjectDetails(3)">View Details</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="project-details-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="project-title">Project Details</h2>
+        <span class="close-modal" onclick="closeProjectDetails()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="openTab('overview')">Project Overview</button>
+          <button class="tab-btn" onclick="openTab('cost')">Cost & Payment</button>
+          <button class="tab-btn" onclick="openTab('timeline')">Timeline</button>
+          <button class="tab-btn" onclick="openTab('commercial')">Commercial Model</button>
+          <button class="tab-btn" onclick="openTab('risk')">Risk & Assumptions</button>
+        </div>
+
+        <div id="overview" class="tab-content active">
+          <h3>Project Overview</h3>
+          <div class="table-container">
+            <table>
+              <tr>
+                <th>Project Name</th>
+                <td id="project-name">COVID/Flu OTC Pen Test 510(k) Submission</td>
+              </tr>
+              <tr>
+                <th>Owner</th>
+                <td id="project-owner">Sherif Elkadem</td>
+              </tr>
+              <tr>
+                <th>Manufacturer</th>
+                <td id="project-manufacturer">Hangzhou Assure Tech</td>
+              </tr>
+              <tr>
+                <th>Region</th>
+                <td id="project-region">USA</td>
+              </tr>
+              <tr>
+                <th>Product Type</th>
+                <td id="project-type">Medical Device</td>
+              </tr>
+              <tr>
+                <th>Description</th>
+                <td id="project-description">Dual detection self-test for COVID-19 and influenza A/B</td>
+              </tr>
+              <tr>
+                <th>Objective</th>
+                <td id="project-objective">Obtain FDA clearance and launch OTC</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div id="cost" class="tab-content">
+          <h3>Cost & Payment</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Year</th>
+                  <th>Phase</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="cost-table-body">
+                <!-- Cost data will be populated by JavaScript -->
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="2">Total</th>
+                  <td id="total-cost">$2,000,000</td>
+                  <td colspan="3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div id="timeline" class="tab-content">
+          <h3>Timeline</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Phase</th>
+                  <th>Description</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Duration (days)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="timeline-table-body">
+                <!-- Timeline data will be populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="gantt-chart-container">
+            <h4>Gantt Chart</h4>
+            <div class="gantt-chart" id="gantt-chart">
+              <!-- Gantt chart will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <div id="commercial" class="tab-content">
+          <h3>Commercial Model</h3>
+          <div class="commercial-grid">
+            <div class="commercial-card">
+              <h4>Year 1 Projections</h4>
+              <div class="table-container">
+                <table>
+                  <tr>
+                    <th>Revenue</th>
+                    <td id="year1-revenue">$3,500,787</td>
+                  </tr>
+                  <tr>
+                    <th>COGS</th>
+                    <td id="year1-cogs">$1,400,315</td>
+                  </tr>
+                  <tr>
+                    <th>Gross Margin</th>
+                    <td id="year1-margin">$2,100,472</td>
+                  </tr>
+                  <tr>
+                    <th>Marketing</th>
+                    <td id="year1-marketing">$700,157</td>
+                  </tr>
+                  <tr>
+                    <th>Operations</th>
+                    <td id="year1-operations">$350,079</td>
+                  </tr>
+                  <tr>
+                    <th>R&D</th>
+                    <td id="year1-rd">$175,039</td>
+                  </tr>
+                  <tr>
+                    <th>Net Profit</th>
+                    <td id="year1-profit">$450,000</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            
+            <div class="commercial-card">
+              <h4>Year 2 Projections</h4>
+              <div class="table-container">
+                <table>
+                  <tr>
+                    <th>Revenue</th>
+                    <td id="year2-revenue">$7,500,000</td>
+                  </tr>
+                  <tr>
+                    <th>COGS</th>
+                    <td id="year2-cogs">$3,000,000</td>
+                  </tr>
+                  <tr>
+                    <th>Gross Margin</th>
+                    <td id="year2-margin">$4,500,000</td>
+                  </tr>
+                  <tr>
+                    <th>Marketing</th>
+                    <td id="year2-marketing">$1,125,000</td>
+                  </tr>
+                  <tr>
+                    <th>Operations</th>
+                    <td id="year2-operations">$600,000</td>
+                  </tr>
+                  <tr>
+                    <th>R&D</th>
+                    <td id="year2-rd">$300,000</td>
+                  </tr>
+                  <tr>
+                    <th>Net Profit</th>
+                    <td id="year2-profit">$2,000,000</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            
+            <div class="commercial-card">
+              <h4>Year 3 Projections</h4>
+              <div class="table-container">
+                <table>
+                  <tr>
+                    <th>Revenue</th>
+                    <td id="year3-revenue">$12,000,000</td>
+                  </tr>
+                  <tr>
+                    <th>COGS</th>
+                    <td id="year3-cogs">$4,800,000</td>
+                  </tr>
+                  <tr>
+                    <th>Gross Margin</th>
+                    <td id="year3-margin">$7,200,000</td>
+                  </tr>
+                  <tr>
+                    <th>Marketing</th>
+                    <td id="year3-marketing">$1,440,000</td>
+                  </tr>
+                  <tr>
+                    <th>Operations</th>
+                    <td id="year3-operations">$840,000</td>
+                  </tr>
+                  <tr>
+                    <th>R&D</th>
+                    <td id="year3-rd">$360,000</td>
+                  </tr>
+                  <tr>
+                    <th>Net Profit</th>
+                    <td id="year3-profit">$3,500,000</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="risk" class="tab-content">
+          <h3>Risk & Assumptions</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Probability</th>
+                  <th>Impact</th>
+                  <th>Score</th>
+                  <th>Mitigation</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="risk-table-body">
+                <!-- Risk data will be populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="risk-matrix-container">
+            <h4>Risk Heat Map</h4>
+            <div class="risk-matrix" id="risk-matrix">
+              <!-- Risk matrix will be populated by JavaScript -->
+              <div class="risk-matrix-grid">
+                <div class="risk-matrix-header">Impact</div>
+                <div class="risk-matrix-header">1</div>
+                <div class="risk-matrix-header">2</div>
+                <div class="risk-matrix-header">3</div>
+                <div class="risk-matrix-header">4</div>
+                <div class="risk-matrix-header">5</div>
+                
+                <div class="risk-matrix-header">5</div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell medium"></div>
+                <div class="risk-matrix-cell high"></div>
+                <div class="risk-matrix-cell high risk-item" data-risk="R-001">R-001</div>
+                
+                <div class="risk-matrix-header">4</div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell medium"></div>
+                <div class="risk-matrix-cell medium risk-item" data-risk="R-002">R-002</div>
+                <div class="risk-matrix-cell high"></div>
+                
+                <div class="risk-matrix-header">3</div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell medium risk-item" data-risk="R-005">R-005</div>
+                <div class="risk-matrix-cell medium risk-item" data-risk="R-003">R-003</div>
+                <div class="risk-matrix-cell high"></div>
+                
+                <div class="risk-matrix-header">2</div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell medium"></div>
+                <div class="risk-matrix-cell medium risk-item" data-risk="R-004">R-004</div>
+                
+                <div class="risk-matrix-header">1</div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell low"></div>
+                <div class="risk-matrix-cell medium"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
