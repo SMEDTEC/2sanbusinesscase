@@ -4,6 +4,48 @@ const PROJECTS_STORAGE_KEY = '2sanBusinessCaseProjects_react';
 const STAGES = ['Idea', 'Proof of Concept', 'Approved', 'Execution', 'Complete', 'On Hold', 'Cancelled'];
 const DEFAULT_PROJECT_STAGE = STAGES[0];
 
+export const defaultCommercialModelStructure = {
+  accounts: [
+    {
+      accountName: 'New Account',
+      years: {
+        year1: { numberOfDoors: 0, velocityPerDoorPerWeek: 0 },
+        year2: { numberOfDoors: 0, velocityPerDoorPerWeek: 0 },
+        year3: { numberOfDoors: 0, velocityPerDoorPerWeek: 0 },
+      },
+      costPricePerUnit: 2.5, // Assuming cost/sell price are global per account
+      sellPricePerUnit: 3.5,
+      notes: ''
+    }
+  ],
+  costPerUnit: 2.50,
+  sellPerUnit: 3.50,
+  totalDoorsAvailable: 125304,
+  averageSalesVelocity: 0.85, // units per door per week
+  penetrationPercentYear1: 60, // Percentage
+  penetrationPercentYear2: 75, // Percentage
+  penetrationPercentYear3: 80, // Percentage
+  totalDoors: { year1: 0, year2: 0, year3: 0 }, 
+  avgUnitsPerDoor: { year1: 0, year2: 0, year3: 0 }, 
+  totalInvestment: { year1: 0, year2: 0, year3: 0 },
+  quarterlyDistribution: {
+    year1: [ { q:1, p:10 }, { q:2, p:15 }, { q:3, p:35 }, { q:4, p:40 } ],
+    year2: [ { q:1, p:20 }, { q:2, p:10 }, { q:3, p:35 }, { q:4, p:35 } ],
+    year3: [ { q:1, p:20 }, { q:2, p:10 }, { q:3, p:35 }, { q:4, p:35 } ],
+  },
+  projections: {
+    years: [
+      { year: 1, unitSales: 0, totalRevenue: 0, totalCostOfGoods: 0, totalGrossMargin: 0, quarters: [ { quarter: 1, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 2, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 3, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 4, revenue: 0, costOfGoods: 0, grossMargin: 0 }] },
+      { year: 2, unitSales: 0, totalRevenue: 0, totalCostOfGoods: 0, totalGrossMargin: 0, quarters: [ { quarter: 1, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 2, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 3, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 4, revenue: 0, costOfGoods: 0, grossMargin: 0 }] },
+      { year: 3, unitSales: 0, totalRevenue: 0, totalCostOfGoods: 0, totalGrossMargin: 0, quarters: [ { quarter: 1, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 2, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 3, revenue: 0, costOfGoods: 0, grossMargin: 0 }, { quarter: 4, revenue: 0, costOfGoods: 0, grossMargin: 0 }] },
+    ],
+    summary: {
+      totalRevenue: 0, totalCostOfGoods: 0, totalGrossMargin: 0,
+      totalInvestment: 0, totalNetProfit: 0, revenueCAGR: 0,
+    }
+  }
+};
+
 const initialMockProjects = [
     {
         id: 1,
@@ -25,7 +67,7 @@ const initialMockProjects = [
         highestRiskIdentification: "Delay",
         phases: [{ id: 1, name: "Phase 1", description: "Initial Planning & Contracting", startDate: "2025-06-14", endDate: "2025-08-05", duration: 52, status: "Not Started" }],
         costs: [{ category: "Regulatory Strategy", description: "Regulatory Strategy & FDA Pre-Sub", amount: 60000, year: 2025, phase: 3, status: "Not Started" }],
-        commercialModel: { year1: { revenue: 3500787, cogs: 1400315, grossMargin: 2100472, marketing: 700157, operations: 350079, rd: 175039, netProfit: 450000 }, year2: {}, year3: {} },
+        commercialModel: JSON.parse(JSON.stringify(defaultCommercialModelStructure)),
         risks: [{ id: "R-001", category: "Regulatory", description: "FDA may request additional clinical data", probability: 4, impact: 5, score: 0.8, mitigation: "Pre-submission meeting", owner: "Regulatory Affairs", status: "Open" }]
     },
     {
@@ -46,25 +88,98 @@ const initialMockProjects = [
         year1Revenue: 2800000,
         highestRiskScore: 0.7,
         highestRiskIdentification: "Manufacturing Scalability",
-        phases: [], costs: [], commercialModel: { year1: { revenue: 2800000, cogs: 1200000, grossMargin: 1600000, marketing: 500000, operations: 300000, rd: 100000, netProfit: 500000 }, year2: {}, year3: {} }, risks: []
+        phases: [], 
+        costs: [], 
+        commercialModel: {}, 
+        risks: []
       }
 ];
 
 // Helper function to calculate summary data from detailed project properties
-const recalculateProjectSummaries = (project) => {
-    const newProject = { ...project };
+const recalculateProjectSummaries = (projectInput) => {
+  // Deep clone input to avoid side effects and ensure we're working with a mutable copy.
+  const project = JSON.parse(JSON.stringify(projectInput || {}));
+
+  // Ensure commercialModel is a well-structured object.
+  const inputCommercialModel = (typeof project.commercialModel === 'object' && project.commercialModel !== null) 
+                             ? project.commercialModel 
+                             : {};
+
+  project.commercialModel = {
+    ...defaultCommercialModelStructure, // Start with the complete default structure
+    ...inputCommercialModel, // Overlay with properties from the input's commercialModel
+
+    // Ensure critical nested structures are correctly typed and complete
+    accounts: (Array.isArray(inputCommercialModel.accounts) 
+      ? inputCommercialModel.accounts.map(acc => ({
+          ...defaultCommercialModelStructure.accounts[0], // provides default structure for an account
+          ...acc,
+          years: {
+            year1: { ...defaultCommercialModelStructure.accounts[0].years.year1, ...acc.years?.year1 },
+            year2: { ...defaultCommercialModelStructure.accounts[0].years.year2, ...acc.years?.year2 },
+            year3: { ...defaultCommercialModelStructure.accounts[0].years.year3, ...acc.years?.year3 },
+          }
+        }))
+      : JSON.parse(JSON.stringify(defaultCommercialModelStructure.accounts))),
+    totalDoors: { 
+      ...defaultCommercialModelStructure.totalDoors, 
+      ...(typeof inputCommercialModel.totalDoors === 'object' && inputCommercialModel.totalDoors !== null ? inputCommercialModel.totalDoors : {}) 
+    },
+    avgUnitsPerDoor: { 
+      ...defaultCommercialModelStructure.avgUnitsPerDoor, 
+      ...(typeof inputCommercialModel.avgUnitsPerDoor === 'object' && inputCommercialModel.avgUnitsPerDoor !== null ? inputCommercialModel.avgUnitsPerDoor : {}) 
+    },
+    totalInvestment: { 
+      ...defaultCommercialModelStructure.totalInvestment, 
+      ...(typeof inputCommercialModel.totalInvestment === 'object' && inputCommercialModel.totalInvestment !== null ? inputCommercialModel.totalInvestment : {}) 
+    },
+    quarterlyDistribution: { 
+      ...defaultCommercialModelStructure.quarterlyDistribution, 
+      ...(typeof inputCommercialModel.quarterlyDistribution === 'object' && inputCommercialModel.quarterlyDistribution !== null ? inputCommercialModel.quarterlyDistribution : {}) 
+    },
+    projections: {
+      ...defaultCommercialModelStructure.projections,
+      ...(typeof inputCommercialModel.projections === 'object' && inputCommercialModel.projections !== null ? inputCommercialModel.projections : {}),
+      years: (Array.isArray(inputCommercialModel.projections?.years) && inputCommercialModel.projections.years.length === 3)
+             ? inputCommercialModel.projections.years.map((yearData, index) => ({
+                ...defaultCommercialModelStructure.projections.years[index],
+                ...(typeof yearData === 'object' && yearData !== null ? yearData : {}),
+                quarters: (Array.isArray(yearData?.quarters) && yearData.quarters.length === 4)
+                          ? yearData.quarters.map((qData, qIndex) => ({
+                              ...defaultCommercialModelStructure.projections.years[index].quarters[qIndex],
+                              ...(typeof qData === 'object' && qData !== null ? qData : {})
+                            }))
+                          : JSON.parse(JSON.stringify(defaultCommercialModelStructure.projections.years[index].quarters))
+              }))
+            : JSON.parse(JSON.stringify(defaultCommercialModelStructure.projections.years)),
+      summary: {
+        ...defaultCommercialModelStructure.projections.summary,
+        ...(typeof inputCommercialModel.projections?.summary === 'object' && inputCommercialModel.projections.summary !== null ? inputCommercialModel.projections.summary : {})
+      }
+    }
+  };
+
+  // Now, newProject will be based on the 'project' which has a fully sanitized commercialModel.
+  const newProject = { ...project };
 
     // Recalculate Total Cost from the 'costs' array, safely handling null entries
     newProject.totalCost = newProject.costs?.reduce((sum, cost) => sum + (cost?.amount || 0), 0) || 0;
 
-    // Recalculate Year 1 Revenue from the detailed accounts in the commercial model
-    if (newProject.commercialModel?.accounts) {
+    // Recalculate Year 1 Revenue
+    // Prioritize Year 1 Revenue from the new projections
+    if (newProject.commercialModel?.projections?.years?.[0]?.totalRevenue && newProject.commercialModel.projections.years[0].totalRevenue > 0) {
+        newProject.year1Revenue = newProject.commercialModel.projections.years[0].totalRevenue;
+    } else if (newProject.commercialModel?.accounts && newProject.commercialModel.accounts.length > 0) { // Fallback to accounts-based if projections not populated or zero
         newProject.year1Revenue = newProject.commercialModel.accounts.reduce((total, acc) => {
             const annualUnits = (acc.numberOfDoors || 0) * (acc.velocityPerDoorPerWeek || 0) * 52;
             const revenue = annualUnits * (acc.sellPricePerUnit || 0);
             return total + revenue;
         }, 0);
-    } else {
+    } else { // Ultimate fallback
+        newProject.year1Revenue = 0;
+    }
+    // Ensure year1Revenue is a number, default to 0 if NaN or undefined after calculations
+    if (isNaN(newProject.year1Revenue) || typeof newProject.year1Revenue === 'undefined') {
         newProject.year1Revenue = 0;
     }
 
@@ -109,16 +224,7 @@ export const ProjectProvider = ({ children }) => {
                 data = parsedProjects.map(p => recalculateProjectSummaries(p));
             } else {
                 console.log("No projects in localStorage, initializing with mock data.");
-                data = initialMockProjects.map(p => recalculateProjectSummaries({
-                    ...p,
-                    id: p.id || Date.now() + Math.random(),
-                    stage: p.stage || DEFAULT_PROJECT_STAGE,
-                    approvals: p.approvals || [],
-                    phases: p.phases || [],
-                    costs: p.costs || [],
-                    commercialModel: p.commercialModel || { year1: {}, year2: {}, year3: {} },
-                    risks: p.risks || []
-                }));
+                data = initialMockProjects.map(p => recalculateProjectSummaries(p)); // recalculateProjectSummaries now handles full sanitization
             }
             localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(data));
         } catch (error) {
@@ -131,7 +237,7 @@ export const ProjectProvider = ({ children }) => {
                 approvals: p.approvals || [],
                 phases: p.phases || [],
                 costs: p.costs || [],
-                commercialModel: p.commercialModel || { year1: {}, year2: {}, year3: {} },
+                commercialModel: p.commercialModel && Object.keys(p.commercialModel).length > 2 ? p.commercialModel : JSON.parse(JSON.stringify(defaultCommercialModelStructure)),
                 risks: p.risks || []
             }));
             localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(data));
@@ -157,7 +263,7 @@ export const ProjectProvider = ({ children }) => {
             launchDate: new Date().toISOString().split('T')[0],
             phases: [],
             costs: [],
-            commercialModel: { year1: {}, year2: {}, year3: {} },
+            commercialModel: JSON.parse(JSON.stringify(defaultCommercialModelStructure)),
             risks: [],
             ...newProjectData,
         };
