@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import {
   Box, Typography, Paper, Table,
   TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Grid, Chip, Button, TextField, IconButton, List, ListItem, ListItemText
+  TableHead, TableRow, Grid, Chip, Button, TextField, IconButton, List, ListItem, ListItemText, Tooltip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -10,10 +10,20 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { ProjectContext } from '../context/ProjectContext';
+import { Bubble } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  LinearScale,
+  PointElement,
+  Tooltip as ChartTooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(LinearScale, PointElement, ChartTooltip, Legend);
 
 const defaultRiskAssumptions = {
   risks: [
-    { id: 'R-001', category: 'Regulatory', description: 'FDA may request additional clinical data.', probability: 4, impact: 5, mitigation: 'Pre-submission meeting.', owner: 'Regulatory Affairs', status: 'Open' },
+    { id: 'R-001', category: 'Regulatory', description: 'FDA may request additional clinical data.', occurrence: 4, detection: 3, severity: 5, mitigation: 'Pre-submission meeting.', owner: 'Regulatory Affairs', status: 'Open' },
   ],
   assumptions: [
     'Assumes a standard 510(k) submission pathway.',
@@ -39,7 +49,7 @@ const RiskAssumptions = ({ project }) => {
 
   const handleRiskChange = (index, field, value) => {
     const newRisks = [...editedData.risks];
-    const parsedValue = (field === 'probability' || field === 'impact') ? parseInt(value, 10) || 0 : value;
+    const parsedValue = (field === 'occurrence' || field === 'detection' || field === 'severity') ? parseInt(value, 10) || 0 : value;
     newRisks[index] = { ...newRisks[index], [field]: parsedValue };
     setEditedData({ ...editedData, risks: newRisks });
   };
@@ -51,7 +61,7 @@ const RiskAssumptions = ({ project }) => {
   };
 
   const addRisk = () => {
-    const newRisk = { id: `R-00${editedData.risks.length + 1}`, category: '', description: '', probability: 1, impact: 1, mitigation: '', owner: '', status: 'New' };
+    const newRisk = { id: `R-00${editedData.risks.length + 1}`, category: '', description: '', occurrence: 1, detection: 1, severity: 1, mitigation: '', owner: '', status: 'New' };
     setEditedData({ ...editedData, risks: [...editedData.risks, newRisk] });
   };
 
@@ -69,13 +79,114 @@ const RiskAssumptions = ({ project }) => {
     setEditedData({ ...editedData, assumptions: newAssumptions });
   };
 
-  const getRiskScoreChip = (probability, impact) => {
-    const score = (probability * 0.1) * (impact * 0.1) * 10; // Simple weighted score
-    const normalizedScore = Math.min(1, score).toFixed(2);
+  const getCriticalityChip = (occurrence, detection, severity) => {
+    const criticalityScore = occurrence * detection * severity;
+    let level = 'Minor';
     let color = 'success';
-    if (normalizedScore > 0.6) color = 'error';
-    else if (normalizedScore > 0.3) color = 'warning';
-    return <Chip label={normalizedScore} color={color} size="small" />;
+    let impactOnUser = 'No impact on the end user';
+
+    if (criticalityScore > 27) {
+      level = 'Critical';
+      color = 'error';
+      impactOnUser = 'Major impact on end user';
+    } else if (criticalityScore >= 16) {
+      level = 'Major';
+      color = 'warning';
+      impactOnUser = 'Minor impact on end user';
+    }
+
+    const title = (
+      <>
+        <Typography variant="body2">Score: {criticalityScore}</Typography>
+        <Typography variant="body2">Level: {level}</Typography>
+        <Typography variant="body2">Impact: {impactOnUser}</Typography>
+      </>
+    );
+
+    return (
+      <Tooltip title={title}>
+        <Chip label={level} color={color} size="small" />
+      </Tooltip>
+    );
+  };
+
+  const heatMapData = {
+    datasets: editedData.risks.map(risk => {
+      const criticalityScore = risk.occurrence * risk.detection * risk.severity;
+      let backgroundColor = 'rgba(40, 200, 40, 0.5)'; // Minor - Green
+      if (criticalityScore > 27) {
+        backgroundColor = 'rgba(255, 99, 132, 0.5)'; // Critical - Red
+      } else if (criticalityScore >= 16) {
+        backgroundColor = 'rgba(255, 206, 86, 0.5)'; // Major - Yellow
+      }
+      return {
+        label: risk.id,
+        data: [{
+          x: risk.occurrence,
+          y: risk.severity,
+          r: 10 + risk.detection * 2 // Radius can be linked to detection score
+        }],
+        backgroundColor,
+        borderColor: backgroundColor.replace('0.5', '1'),
+        borderWidth: 1,
+      };
+    })
+  };
+
+  const heatMapOptions = {
+    scales: {
+      y: {
+        beginAtZero: true,
+        min: 0,
+        max: 6,
+        title: {
+          display: true,
+          text: 'Severity (Impact)'
+        },
+        grid: {
+          drawOnChartArea: true,
+          color: (context) => {
+            if (context.tick.value === 0) return 'transparent';
+            return '#e0e0e0';
+          }
+        }
+      },
+      x: {
+        beginAtZero: true,
+        min: 0,
+        max: 6,
+        title: {
+          display: true,
+          text: 'Occurrence (Likelihood)'
+        },
+        grid: {
+          drawOnChartArea: true,
+          color: (context) => {
+            if (context.tick.value === 0) return 'transparent';
+            return '#e0e0e0';
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const risk = editedData.risks[context.datasetIndex];
+            const criticalityScore = risk.occurrence * risk.detection * risk.severity;
+            return [
+              `${risk.id}: ${risk.description}`,
+              `Occurrence: ${risk.occurrence}, Severity: ${risk.severity}, Detection: ${risk.detection}`,
+              `Criticality Score: ${criticalityScore}`
+            ];
+          }
+        }
+      }
+    },
+    maintainAspectRatio: false
   };
 
   return (
@@ -97,16 +208,17 @@ const RiskAssumptions = ({ project }) => {
       <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Risk Assessment Matrix</Typography>
       <TableContainer component={Paper} sx={{ mb: 4 }}>
         <Table size="small">
-          <TableHead><TableRow sx={{ backgroundColor: '#1976d2' }}>{['ID', 'Category', 'Description', 'Prob (1-5)', 'Impact (1-5)', 'Score', 'Mitigation', 'Owner', 'Status', ''].map(h => <TableCell key={h} sx={{ color: 'white' }}>{h}</TableCell>)}</TableRow></TableHead>
+          <TableHead><TableRow sx={{ backgroundColor: '#1976d2' }}>{['ID', 'Category', 'Description', 'Occurrence (1-5)', 'Detection (1-5)', 'Severity (1-5)', 'Criticality', 'Mitigation', 'Owner', 'Status', ''].map(h => <TableCell key={h} sx={{ color: 'white' }}>{h}</TableCell>)}</TableRow></TableHead>
           <TableBody>
             {editedData.risks.map((risk, i) => (
               <TableRow key={i}>
                 <TableCell>{isEditing ? <TextField size="small" value={risk.id} onChange={(e) => handleRiskChange(i, 'id', e.target.value)} /> : risk.id}</TableCell>
                 <TableCell>{isEditing ? <TextField size="small" value={risk.category} onChange={(e) => handleRiskChange(i, 'category', e.target.value)} /> : risk.category}</TableCell>
                 <TableCell>{isEditing ? <TextField size="small" fullWidth value={risk.description} onChange={(e) => handleRiskChange(i, 'description', e.target.value)} /> : risk.description}</TableCell>
-                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.probability} onChange={(e) => handleRiskChange(i, 'probability', e.target.value)} /> : risk.probability}</TableCell>
-                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.impact} onChange={(e) => handleRiskChange(i, 'impact', e.target.value)} /> : risk.impact}</TableCell>
-                <TableCell>{getRiskScoreChip(risk.probability, risk.impact)}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.occurrence} onChange={(e) => handleRiskChange(i, 'occurrence', e.target.value)} /> : risk.occurrence}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.detection} onChange={(e) => handleRiskChange(i, 'detection', e.target.value)} /> : risk.detection}</TableCell>
+                <TableCell>{isEditing ? <TextField size="small" type="number" inputProps={{ min: 1, max: 5 }} value={risk.severity} onChange={(e) => handleRiskChange(i, 'severity', e.target.value)} /> : risk.severity}</TableCell>
+                <TableCell>{getCriticalityChip(risk.occurrence, risk.detection, risk.severity)}</TableCell>
                 <TableCell>{isEditing ? <TextField size="small" fullWidth value={risk.mitigation} onChange={(e) => handleRiskChange(i, 'mitigation', e.target.value)} /> : risk.mitigation}</TableCell>
                 <TableCell>{isEditing ? <TextField size="small" value={risk.owner} onChange={(e) => handleRiskChange(i, 'owner', e.target.value)} /> : risk.owner}</TableCell>
                 <TableCell>{isEditing ? <TextField size="small" value={risk.status} onChange={(e) => handleRiskChange(i, 'status', e.target.value)} /> : risk.status}</TableCell>
@@ -140,14 +252,9 @@ const RiskAssumptions = ({ project }) => {
         Risk Heat Map
       </Typography>
       <Paper sx={{ p: 3, mt: 2 }}>
-        <Box sx={{ height: '400px', backgroundColor: '#f5f5f5', p: 2, border: '1px dashed #ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Typography variant="body1" color="textSecondary">
-            Risk Heat Map Visualization will be rendered here
-          </Typography>
+        <Box sx={{ height: '400px', position: 'relative' }}>
+          <Bubble options={heatMapOptions} data={heatMapData} />
         </Box>
-        <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-          Note: The Risk Heat Map will be implemented using Chart.js to visualize the probability and impact of identified risks.
-        </Typography>
       </Paper>
 
       {/* Risk Management Plan */}
@@ -169,9 +276,9 @@ const RiskAssumptions = ({ project }) => {
           <strong>Risk Escalation Criteria:</strong>
         </Typography>
         <ul>
-          <li>Any risk with a score ≥ 0.7 requires immediate escalation to executive sponsors</li>
-          <li>Any risk with a score between 0.4-0.69 requires mitigation plan approval by project steering committee</li>
-          <li>Cumulative impact of multiple medium risks (≥ 3 risks with scores 0.3-0.5) requires escalation</li>
+          <li>Any 'Critical' risk (score &gt; 27) requires immediate escalation to executive sponsors.</li>
+          <li>Any 'Major' risk (score 16-27) requires a mitigation plan approved by the project steering committee.</li>
+          <li>Cumulative impact of multiple 'Major' risks (e.g., ≥ 3) may also require escalation.</li>
         </ul>
       </Paper>
     </Box>
