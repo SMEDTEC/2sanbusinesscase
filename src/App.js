@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './theme'; // Import the new theme
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Pages
@@ -11,31 +12,7 @@ import AddProject from './pages/AddProject';
 // Components
 import Header from './components/Header';
 
-// Create a theme instance
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#0d47a1',
-    },
-    secondary: {
-      main: '#19857b',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-  },
-});
+// The theme is now imported from ./theme.js
 
 function App() {
   return (

@@ -6,17 +6,19 @@ import {
   Chip, List, ListItem, ListItemText, IconButton,
   Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles'; // Import useTheme
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'; // Added ArcElement for Pie chart
 import { ProjectContext } from '../context/ProjectContext'; // Import ProjectContext
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend); // Added ArcElement
 
 const Dashboard = () => {
+  const theme = useTheme(); // Instantiate theme object
   const { projectsData, STAGES, deleteProject } = useContext(ProjectContext);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
@@ -45,23 +47,83 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  const overallTotalCost = projectsData.reduce((sum, p) => sum + (p.totalCost || 0), 0);
-  const overallYear1Revenue = projectsData.reduce((sum, p) => sum + (p.year1Revenue || 0), 0);
+  const activeStagesForInvestment = ['Idea', 'Proof of Concept', 'Approved', 'Execution']; // Define stages considered for active investment
+  const overallTotalInvestment = projectsData
+    .filter(p => activeStagesForInvestment.includes(p.stage))
+    .reduce((sum, p) => sum + (p.commercialModel?.projections?.summary?.totalInvestment || 0), 0);
+  const overallYear1Revenue = projectsData.reduce((sum, p) => sum + (p.commercialModel?.projections?.years?.[0]?.totalRevenue || 0), 0); // Still showing overall Y1 Revenue for now, can change later
+
+  // Data for Investment by Stage Pie Chart
+  const investmentByStage = STAGES.map(stage => {
+    const totalForStage = projectsData
+      .filter(p => p.stage === stage)
+      .reduce((sum, p) => sum + (p.commercialModel?.projections?.summary?.totalInvestment || 0), 0);
+    return { stage, totalInvestment: totalForStage };
+  }).filter(s => s.totalInvestment > 0); // Only include stages with investment
+
+  const investmentByStageData = {
+    labels: investmentByStage.map(s => s.stage),
+    datasets: [{
+      label: 'Total Investment by Stage',
+      data: investmentByStage.map(s => s.totalInvestment),
+      backgroundColor: [
+        // Using a mix of theme colors and other distinct colors for stages
+        theme.palette.primary.main,       // buttonBlue
+        theme.palette.secondary.main,     // accentLightBlue
+        theme.palette.success.main,       // MUI green
+        theme.palette.warning.main,       // MUI orange
+        theme.palette.error.main,         // MUI red
+        '#FFC107', // Amber
+        '#00BCD4', // Cyan
+        '#9C27B0', // Purple
+      ].slice(0, investmentByStage.length), // Use only as many colors as needed
+      borderColor: theme.palette.background.paper,
+      borderWidth: 1,
+    }],
+  };
+
+  const pieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: false, // Title will be on the Paper component
+        text: 'Total Investment by Stage'
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let label = context.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed !== null) {
+              label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(context.parsed);
+            }
+            return label;
+          }
+        }
+      }
+    }
+  };
 
   // Chart data preparation
   const projectFinancialsData = {
     labels: projectsData.map(p => p.name.length > 20 ? p.name.substring(0,17) + '...' : p.name), // Truncate long names
     datasets: [
       {
-        label: 'Total Cost',
-        data: projectsData.map(p => p.totalCost || 0),
+        label: '3-Year Investment',
+        data: projectsData.map(p => p.commercialModel?.projections?.summary?.totalInvestment || 0),
         backgroundColor: 'rgba(255, 99, 132, 0.6)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
       },
       {
-        label: 'Year 1 Revenue',
-        data: projectsData.map(p => p.year1Revenue || 0),
+        label: '3-Year Net Profit',
+        data: projectsData.map(p => p.commercialModel?.projections?.summary?.totalNetProfit || 0),
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
@@ -155,10 +217,8 @@ const Dashboard = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Paper elevation={2} sx={{ p: 2, textAlign: 'center', backgroundColor: '#e8f5e9', height: '100%' }}>
-              <Typography variant="h6">Total Cost</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(overallTotalCost)}
-              </Typography>
+              <Typography variant="h6">Overall 3-Yr Investment (Active)</Typography>
+              <Typography variant="h4">{overallTotalInvestment.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -191,6 +251,48 @@ const Dashboard = () => {
         </Grid>
       </Paper>
 
+      {/* Charts Section */}
+      <Grid container spacing={3} sx={{ mb: 4, mt: 4 }}>
+        <Grid item xs={12} md={7}> {/* Main Bar Chart */}
+          <Paper elevation={2} sx={{ p: 2, height: '400px' }}>
+            <Typography variant="h6" gutterBottom>Project Financials Overview (3-Year)</Typography>
+            <Box sx={{ height: 'calc(100% - 48px)'}}>
+              <Bar data={projectFinancialsData} options={chartOptions} />
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={5}> {/* Pie Chart for Investment by Stage */}
+          <Paper elevation={2} sx={{ p: 2, height: '400px' }}>
+            <Typography variant="h6" gutterBottom>Total Investment by Stage</Typography>
+            <Box sx={{ height: 'calc(100% - 48px)'}}>
+              {investmentByStage.length > 0 ? (
+                <Pie data={investmentByStageData} options={pieChartOptions} />
+              ) : (
+                <Typography variant="body2" sx={{textAlign: 'center', mt: 4}}>No investment data to display by stage.</Typography>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Project Stage Distribution List - can be kept or removed if pie chart is sufficient */}
+      <Paper elevation={2} sx={{ p: 2, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>Project Stage Distribution (Count)</Typography>
+        <List dense sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', p:0 }}>
+          {STAGES.map(stage => (
+            projectsByStage[stage] > 0 && (
+              <ListItem key={stage} disablePadding sx={{ width: 'auto', minWidth: '150px', m:0.5, border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: '4px', p:1}}>
+                <ListItemText primary={stage} sx={{mr:1}}/>
+                <Chip label={projectsByStage[stage]} size="small" color={getStageChipColor(stage)} variant="outlined"/>
+              </ListItem>
+            )
+          ))}
+          {Object.values(projectsByStage).every(count => count === 0) && (
+             <ListItem sx={{width: '100%'}}><ListItemText primary="No projects in any stage." primaryTypographyProps={{fontStyle: 'italic'}}/></ListItem>
+          )}
+        </List>
+      </Paper>
+
       {/* Projects Overview Section */}
       <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4, mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
         PROJECTS OVERVIEW
@@ -221,9 +323,9 @@ const Dashboard = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Cost: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits:0, maximumFractionDigits:0 }).format(project.totalCost || 0)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Y1 Revenue: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits:0, maximumFractionDigits:0 }).format(project.year1Revenue || 0)}
-                  </Typography>
+                  <Typography variant="body2">3-Yr Investment: {project.commercialModel?.projections?.summary?.totalInvestment?.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }) || 'N/A'}</Typography>
+                  <Typography variant="body2">3-Yr Net Profit: {project.commercialModel?.projections?.summary?.totalNetProfit?.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }) || 'N/A'}</Typography>
+                  <Typography variant="body2">3-Yr Revenue CAGR: {project.commercialModel?.projections?.summary?.revenueCAGR ? (project.commercialModel.projections.summary.revenueCAGR * 100).toFixed(1) + '%' : 'N/A'}</Typography>
                 </CardContent>
                 <CardActions sx={{ justifyContent: 'flex-end', pt:0 }}>
                   <Button 
