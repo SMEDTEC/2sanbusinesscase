@@ -37,7 +37,7 @@ const CommercialModel = ({ project }) => {
       initialData.accounts = [];
     }
     setEditedData(initialData);
-  }, [project, isEditing]);
+  }, [project.id, isEditing]);
 
   const handleSave = () => {
     updateProject({ ...project, commercialModel: editedData });

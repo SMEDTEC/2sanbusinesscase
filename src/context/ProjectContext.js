@@ -50,6 +50,51 @@ const initialMockProjects = [
       }
 ];
 
+// Helper function to calculate summary data from detailed project properties
+const recalculateProjectSummaries = (project) => {
+    const newProject = { ...project };
+
+    // Recalculate Total Cost from the 'costs' array, safely handling null entries
+    newProject.totalCost = newProject.costs?.reduce((sum, cost) => sum + (cost?.amount || 0), 0) || 0;
+
+    // Recalculate Year 1 Revenue from the detailed accounts in the commercial model
+    if (newProject.commercialModel?.accounts) {
+        newProject.year1Revenue = newProject.commercialModel.accounts.reduce((total, acc) => {
+            const annualUnits = (acc.numberOfDoors || 0) * (acc.velocityPerDoorPerWeek || 0) * 52;
+            const revenue = annualUnits * (acc.sellPricePerUnit || 0);
+            return total + revenue;
+        }, 0);
+    } else {
+        newProject.year1Revenue = 0;
+    }
+
+    // Recalculate Highest Risk Score and Identification safely
+    if (newProject.risks && newProject.risks.length > 0) {
+      // Filter out null/undefined risks and calculate scores
+      const scores = newProject.risks
+        .filter(r => r) // Ensure risk object exists before trying to access its properties
+        .map(r => (r.occurrence || 1) * (r.detection || 1) * (r.severity || 1));
+
+      if (scores.length > 0) {
+        const maxScore = Math.max(...scores);
+        newProject.highestRiskScore = maxScore;
+        
+        // Find the corresponding risk object safely
+        const highestRisk = newProject.risks.find(r => r && ((r.occurrence || 1) * (r.detection || 1) * (r.severity || 1)) === maxScore);
+        newProject.highestRiskIdentification = highestRisk ? highestRisk.description : 'N/A';
+      } else {
+        // This case handles if all risk items were null/undefined
+        newProject.highestRiskScore = 0;
+        newProject.highestRiskIdentification = 'N/A';
+      }
+    } else {
+      newProject.highestRiskScore = 0;
+      newProject.highestRiskIdentification = 'N/A';
+    }
+
+    return newProject;
+};
+
 export const ProjectContext = createContext();
 
 export const ProjectProvider = ({ children }) => {
@@ -59,13 +104,14 @@ export const ProjectProvider = ({ children }) => {
         let data;
         try {
             const storedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-            if (storedProjects) {
-                data = JSON.parse(storedProjects);
+            if (storedProjects && storedProjects !== '[]') {
+                const parsedProjects = JSON.parse(storedProjects);
+                data = parsedProjects.map(p => recalculateProjectSummaries(p));
             } else {
                 console.log("No projects in localStorage, initializing with mock data.");
-                data = initialMockProjects.map(p => ({
+                data = initialMockProjects.map(p => recalculateProjectSummaries({
                     ...p,
-                    id: p.id || Date.now() + Math.random(), // Ensure ID if mock is missing
+                    id: p.id || Date.now() + Math.random(),
                     stage: p.stage || DEFAULT_PROJECT_STAGE,
                     approvals: p.approvals || [],
                     phases: p.phases || [],
@@ -73,11 +119,22 @@ export const ProjectProvider = ({ children }) => {
                     commercialModel: p.commercialModel || { year1: {}, year2: {}, year3: {} },
                     risks: p.risks || []
                 }));
-                localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(data));
             }
+            localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(data));
         } catch (error) {
             console.error("Failed to load or initialize projects:", error);
-            data = []; // Fallback to empty array on error
+            // Fallback to recalculated mock data with full defaults to ensure stability
+            data = initialMockProjects.map(p => recalculateProjectSummaries({
+                ...p,
+                id: p.id || Date.now() + Math.random(),
+                stage: p.stage || DEFAULT_PROJECT_STAGE,
+                approvals: p.approvals || [],
+                phases: p.phases || [],
+                costs: p.costs || [],
+                commercialModel: p.commercialModel || { year1: {}, year2: {}, year3: {} },
+                risks: p.risks || []
+            }));
+            localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(data));
         }
         setProjectsData(data);
     }, []);
@@ -91,29 +148,38 @@ export const ProjectProvider = ({ children }) => {
     };
 
     const addProject = (newProjectData) => {
-        const newProjectWithDefaults = {
+        const projectWithDefaults = {
             id: generateNewProjectId(),
             name: "New Project",
             owner: "Unassigned",
             stage: DEFAULT_PROJECT_STAGE,
             approvals: [],
             launchDate: new Date().toISOString().split('T')[0],
-            totalCost: 0,
-            year1Revenue: 0,
             phases: [],
             costs: [],
             commercialModel: { year1: {}, year2: {}, year3: {} },
             risks: [],
-            ...newProjectData, // Spread incoming data to override defaults
+            ...newProjectData,
         };
-        const updatedProjects = [...projectsData, newProjectWithDefaults];
+        // Recalculate summaries for the new project
+        const newProject = recalculateProjectSummaries(projectWithDefaults);
+        const updatedProjects = [...projectsData, newProject];
         setProjectsData(updatedProjects);
         localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updatedProjects));
-        return newProjectWithDefaults;
+        return newProject;
     };
 
     const updateProject = (updatedProject) => {
-        const updatedProjects = projectsData.map(p => p.id === updatedProject.id ? updatedProject : p);
+        const projectWithRecalculatedSummaries = recalculateProjectSummaries(updatedProject);
+        const updatedProjects = projectsData.map(p => 
+            p.id === projectWithRecalculatedSummaries.id ? projectWithRecalculatedSummaries : p
+        );
+        setProjectsData(updatedProjects);
+        localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updatedProjects));
+    };
+
+    const deleteProject = (projectId) => {
+        const updatedProjects = projectsData.filter(p => p.id !== projectId);
         setProjectsData(updatedProjects);
         localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updatedProjects));
     };
@@ -124,7 +190,7 @@ export const ProjectProvider = ({ children }) => {
     };
 
     return (
-        <ProjectContext.Provider value={{ projectsData, addProject, updateProject, getProjectById, STAGES }}>
+        <ProjectContext.Provider value={{ projectsData, addProject, updateProject, getProjectById, deleteProject, STAGES }}>
             {children}
         </ProjectContext.Provider>
     );

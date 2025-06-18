@@ -8,11 +8,7 @@ const Header = () => {
     <AppBar position="static">
       <Toolbar>
         <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
-          <img 
-            src="/2san-logo.png" 
-            alt="2SAN Logo" 
-            style={{ height: '40px', marginRight: '10px' }} 
-          />
+
           <Typography variant="h6" component={Link} to="/" sx={{ textDecoration: 'none', color: 'white' }}>
             2SAN Business Case Assessment
           </Typography>

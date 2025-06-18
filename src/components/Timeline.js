@@ -27,17 +27,9 @@ const Timeline = ({ project }) => {
     const timelineData = project.timeline || [];
     setEditedTimeline(JSON.parse(JSON.stringify(timelineData)));
     setIsDirty(false); // Reset dirty flag when project data changes
-  }, [project]);
+  }, [project.id]);
 
-  useEffect(() => {
-    // This effect handles auto-saving when the component unmounts (e.g., tab change).
-    return () => {
-      if (isDirty) {
-        const updatedProject = { ...project, timeline: editedTimeline };
-        updateProject(updatedProject);
-      }
-    };
-  }, [isDirty, editedTimeline, project, updateProject]);
+
 
   const handleTimelineChange = (index, field, value) => {
     const newTimeline = [...editedTimeline];

@@ -1,12 +1,14 @@
-import React, { useContext } from 'react'; // Removed useState as it's not directly used here now
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Container, Typography, Grid, Paper, Box, 
   Card, CardContent, CardActions, Button,
-  Chip, List, ListItem, ListItemText // Removed Table related imports, added List for metrics
+  Chip, List, ListItem, ListItemText, IconButton,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { ProjectContext } from '../context/ProjectContext'; // Import ProjectContext
@@ -15,7 +17,26 @@ import { ProjectContext } from '../context/ProjectContext'; // Import ProjectCon
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const Dashboard = () => {
-  const { projectsData, STAGES } = useContext(ProjectContext); // Use context
+  const { projectsData, STAGES, deleteProject } = useContext(ProjectContext);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+
+  const openDeleteDialog = (id) => {
+    setProjectToDelete(id);
+    setDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setProjectToDelete(null);
+    setDialogOpen(false);
+  };
+
+  const handleDelete = () => {
+    if (projectToDelete) {
+      deleteProject(projectToDelete);
+    }
+    closeDeleteDialog();
+  };
 
   // Calculate Key Metrics
   const totalProjects = projectsData.length;
@@ -48,48 +69,7 @@ const Dashboard = () => {
     ],
   };
 
-  const aggregatedFinancials = {
-    year1: { revenue: 0, netProfit: 0 },
-    year2: { revenue: 0, netProfit: 0 },
-    year3: { revenue: 0, netProfit: 0 },
-  };
 
-  projectsData.forEach(p => {
-    if (p.commercialModel) {
-      if (p.commercialModel.year1) {
-        aggregatedFinancials.year1.revenue += p.commercialModel.year1.revenue || 0;
-        aggregatedFinancials.year1.netProfit += p.commercialModel.year1.netProfit || 0;
-      }
-      if (p.commercialModel.year2) { // Ensure year2 data exists in mock/localStorage for this to populate
-        aggregatedFinancials.year2.revenue += p.commercialModel.year2.revenue || 0;
-        aggregatedFinancials.year2.netProfit += p.commercialModel.year2.netProfit || 0;
-      }
-      if (p.commercialModel.year3) { // Ensure year3 data exists for this to populate
-        aggregatedFinancials.year3.revenue += p.commercialModel.year3.revenue || 0;
-        aggregatedFinancials.year3.netProfit += p.commercialModel.year3.netProfit || 0;
-      }
-    }
-  });
-
-  const revenueProjectionData = {
-    labels: ['Year 1', 'Year 2', 'Year 3'],
-    datasets: [
-      {
-        label: 'Total Aggregated Revenue',
-        data: [aggregatedFinancials.year1.revenue, aggregatedFinancials.year2.revenue, aggregatedFinancials.year3.revenue],
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-      },
-      {
-        label: 'Total Aggregated Net Profit',
-        data: [aggregatedFinancials.year1.netProfit, aggregatedFinancials.year2.netProfit, aggregatedFinancials.year3.netProfit],
-        backgroundColor: 'rgba(153, 102, 255, 0.6)',
-        borderColor: 'rgba(153, 102, 255, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
 
   const chartOptions = {
     responsive: true,
@@ -236,7 +216,7 @@ const Dashboard = () => {
                     Owner: {project.owner || 'N/A'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    Launch: {project.launchDate ? new Date(project.launchDate + 'T00:00:00').toLocaleDateString() : 'N/A'} {/* Ensure date is parsed correctly */}
+                    Launch: {project.launchDate ? new Date(project.launchDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Cost: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits:0, maximumFractionDigits:0 }).format(project.totalCost || 0)}
@@ -254,6 +234,9 @@ const Dashboard = () => {
                   >
                     View Details
                   </Button>
+                  <IconButton onClick={() => openDeleteDialog(project.id)} color="error" size="small">
+                      <DeleteIcon />
+                  </IconButton>
                 </CardActions>
               </Card>
             </Grid>
@@ -264,7 +247,7 @@ const Dashboard = () => {
       {/* Charts Section */}
       {projectsData.length > 0 && (
         <Grid container spacing={3} sx={{ mt: 4 }}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" component="h3" gutterBottom sx={{textAlign: 'center'}}>
                 Project Financials (Cost & Y1 Revenue)
@@ -274,18 +257,20 @@ const Dashboard = () => {
               </Box>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 2, height: '400px' }}>
-              <Typography variant="h6" component="h3" gutterBottom sx={{textAlign: 'center'}}>
-                Aggregated Revenue & Profit Projection
-              </Typography>
-              <Box sx={{ height: 'calc(100% - 40px)'}} > {/* Adjust height to accommodate title */}
-                <Bar data={revenueProjectionData} options={chartOptions} />
-              </Box>
-            </Paper>
-          </Grid>
         </Grid>
       )}
+      <Dialog open={dialogOpen} onClose={closeDeleteDialog}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this project? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancel</Button>
+          <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

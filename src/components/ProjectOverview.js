@@ -24,7 +24,7 @@ const ProjectOverview = ({ project }) => {
   };
 
   const handleSave = () => {
-    updateProject(project.id, editedProject);
+    updateProject(editedProject);
     setIsEditing(false);
   };
 

@@ -38,14 +38,19 @@ const RiskAssumptions = ({ project }) => {
   useEffect(() => {
     const initialData = project?.riskAssumptions ? JSON.parse(JSON.stringify(project.riskAssumptions)) : defaultRiskAssumptions;
     setEditedData(initialData);
-  }, [project, isEditing]);
+  }, [project.id]);
 
   const handleSave = () => {
     updateProject({ ...project, riskAssumptions: editedData });
     setIsEditing(false);
   };
 
-  const handleCancel = () => setIsEditing(false);
+  const handleCancel = () => {
+    // Reset state to original on cancel
+    const initialData = project?.riskAssumptions ? JSON.parse(JSON.stringify(project.riskAssumptions)) : defaultRiskAssumptions;
+    setEditedData(initialData);
+    setIsEditing(false);
+  };
 
   const handleRiskChange = (index, field, value) => {
     const newRisks = [...editedData.risks];

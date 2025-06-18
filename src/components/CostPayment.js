@@ -24,7 +24,7 @@ const CostPayment = ({ project }) => {
         contingencyPercentage: project.contingencyPercentage || 0,
       });
     }
-  }, [project, editMode]); // Rerun if project changes or when exiting edit mode
+  }, [project.id, editMode]); // Rerun if project.id changes or when exiting edit mode
 
   const handleEdit = () => setEditMode(true);
 
